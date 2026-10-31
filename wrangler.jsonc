@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "spooky-stickers",
+  "compatibility_date": "2026-09-30",
+  "assets": {
+    "directory": "./dist"
+  },
+  "routes": [
+    {
+      "pattern": "spooky.yidelta.dev",
+      "custom_domain": true
+    },
+    {
+      "pattern": "spooky.yidelta.eu.cc",
+      "custom_domain": true
+    }
+  ]
+}
