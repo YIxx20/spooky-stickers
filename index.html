@@ -1,1710 +1,199 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <title>Spooky Sticker Pack — 万圣节奶蛙闪粉贴纸包</title>
-  <meta name="description" content="透明压纹气泡塑料袋密封的万圣节闪粉贴纸包。沿虚线撕开包装，贴纸将飞散散落在桌面上，支持3D全息闪粉转动与角隅剥离撕下体验。" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="./vendor/three.min.js"></script>
+  <meta name="description" content="透明压纹气泡塑料袋密封的万圣节奶蛙闪粉贴纸包。沿虚线撕开包装，贴纸将飞散散落在桌面上，支持3D全息闪粉转动与角隅剥离撕下体验。" />
   <style>
-    :root {
-      --ink: #111114;
-      --bg: #ffffff;
-      --accent: #ff4785;
-    }
-    * {
-      box-sizing: border-box;
-      user-select: none;
-      -webkit-user-select: none;
-      -webkit-touch-callout: none;
+    html, body {
+      background: #ffffff;
       margin: 0;
       padding: 0;
-    }
-    html, body {
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: var(--bg);
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Segoe UI", system-ui, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    .sp {
+      --ink: #111114;
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      background: #ffffff;
       color: var(--ink);
-      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
       -webkit-tap-highlight-color: transparent;
     }
-
-    #stage {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: radial-gradient(circle at 50% 45%, #ffffff 0%, #fbfbfc 50%, #f4f5f8 100%);
-    }
-
-    #webgl-canvas {
+    .sp-canvas {
       position: absolute;
       inset: 0;
       width: 100%;
       height: 100%;
       display: block;
       touch-action: none;
-      pointer-events: auto;
-      z-index: 10;
-      transition: opacity 0.5s ease;
-    }
-
-    #scatter-layer {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      overflow: hidden;
-      z-index: 20;
-    }
-
-    .table-sticker {
-      position: absolute;
-      transform-origin: center center;
-      cursor: grab;
-      pointer-events: auto;
-      will-change: transform, left, top;
-      filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.12));
-      transition: filter 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
-    }
-    .table-sticker:hover {
-      filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.18));
-      transform: scale(1.05) rotate(var(--rot, 0deg));
-      z-index: 999 !important;
-    }
-    .table-sticker:active {
-      cursor: grabbing;
-      filter: drop-shadow(0 20px 32px rgba(0, 0, 0, 0.24));
-    }
-    .table-sticker img {
-      display: block;
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      pointer-events: none;
-    }
-
-    .top-bar {
-      position: absolute;
-      top: max(18px, env(safe-area-inset-top));
-      left: max(20px, env(safe-area-inset-left));
-      right: max(20px, env(safe-area-inset-right));
-      z-index: 40;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      pointer-events: none;
-    }
-    .brand-title {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      pointer-events: auto;
-    }
-    .brand-title h1 {
-      font-size: 15px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      color: var(--ink);
-    }
-    .brand-title p {
-      font-size: 11px;
-      color: rgba(17, 17, 20, 0.45);
-    }
-
-    .pack-switcher {
-      display: flex;
-      align-items: center;
-      background: rgba(255, 255, 255, 0.85);
-      border: 1px solid rgba(17, 17, 20, 0.08);
-      border-radius: 999px;
-      padding: 3px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      pointer-events: auto;
-    }
-    .pack-btn {
-      border: none;
-      background: none;
-      padding: 5px 12px;
-      font-size: 12px;
-      font-weight: 500;
-      border-radius: 999px;
-      color: rgba(17, 17, 20, 0.55);
-      cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-    }
-    .pack-btn.active {
-      background: var(--ink);
-      color: #ffffff;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    }
-
-    .bottom-bar {
-      position: fixed;
-      bottom: max(22px, env(safe-area-inset-bottom));
-      left: 0;
-      right: 0;
-      z-index: 40;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      pointer-events: none;
-      text-align: center;
-      padding: 0 16px;
-    }
-    .bottom-hint {
-      font-size: 13px;
-      color: rgba(17, 17, 20, 0.45);
-      letter-spacing: 0.01em;
-      transition: opacity 0.3s ease, transform 0.3s ease;
-      animation: hint-in 0.5s ease both;
-    }
-    .reseal-btn {
-      display: none;
-      margin-top: 4px;
-      padding: 4px 10px;
-      border: none;
-      background: none;
-      font-size: 13px;
-      color: rgba(17, 17, 20, 0.65);
-      text-decoration: underline;
-      text-decoration-color: rgba(17, 17, 20, 0.25);
-      text-underline-offset: 4px;
-      cursor: pointer;
-      pointer-events: auto;
-      transition: color 0.2s ease, text-decoration-color 0.2s ease;
-    }
-    .reseal-btn:hover {
-      color: var(--ink);
-      text-decoration-color: var(--ink);
-    }
-    @keyframes hint-in {
-      from { opacity: 0; transform: translateY(4px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .inspect-backdrop {
-      position: fixed;
-      inset: 0;
-      z-index: 100;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      background: rgba(115, 115, 122, 0.38);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
       opacity: 0;
-      transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: opacity 0.8s ease;
     }
-    .inspect-backdrop.open {
-      display: flex;
+    .sp[data-ready] .sp-canvas {
       opacity: 1;
     }
-    .inspect-card {
-      position: relative;
-      width: min(440px, calc(100vw - 32px));
-      height: min(560px, calc(100vh - 64px));
-      background: #ffffff;
-      border-radius: 36px;
-      box-shadow: 0 25px 65px -12px rgba(0, 0, 0, 0.25), 0 6px 20px rgba(0, 0, 0, 0.08);
+    .sp-sr {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      border: 0;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+    .sp-corner {
+      position: absolute;
+      top: 20px;
+      left: 24px;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      pointer-events: auto;
+    }
+    .sp-brand {
+      font-size: 14px;
+      font-weight: 600;
+      color: #111114;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .sp-brand-sub {
+      font-size: 12px;
+      font-weight: 400;
+      color: #8e8e93;
+    }
+    .sp-hints {
+      position: absolute;
+      bottom: 28px;
+      left: 0;
+      right: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: space-between;
-      padding: 24px 20px 24px;
-      transform: scale(0.92);
-      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+      justify-content: center;
+      pointer-events: none;
+      z-index: 10;
+      text-align: center;
+      padding: 0 16px;
+      gap: 6px;
     }
-    .inspect-backdrop.open .inspect-card {
-      transform: scale(1);
+    .sp-hint {
+      margin: 0;
+      font-size: 14px;
+      color: #8e8e93;
+      font-weight: 400;
+      letter-spacing: -0.01em;
+      transition: opacity 0.25s ease, transform 0.25s ease;
     }
-    .inspect-canvas-wrap {
-      position: relative;
-      flex: 1;
-      width: 100%;
+    .sp-seal {
+      appearance: none;
+      background: none;
+      border: none;
+      padding: 0;
+      margin: 0;
+      font: inherit;
+      font-size: 13px;
+      color: #8e8e93;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      cursor: pointer;
+      pointer-events: auto;
+      transition: color 0.15s ease;
+      display: none;
+    }
+    .sp-seal:hover {
+      color: #111114;
+    }
+    .sp[data-open] .sp-seal {
+      display: inline-block;
+    }
+    .sp-pop {
+      position: absolute;
+      bottom: 28px;
+      left: 0;
+      right: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      perspective: 1000px;
-    }
-    .inspect-3d-box {
-      transform-style: preserve-3d;
-      transition: transform 0.08s ease-out;
-      will-change: transform;
-    }
-    #modal-canvas {
-      display: block;
-      width: min(320px, calc(100vw - 80px));
-      height: min(320px, calc(100vw - 80px));
-      cursor: grab;
-    }
-    #modal-canvas:active {
-      cursor: grabbing;
-    }
-    .inspect-footer {
-      width: 100%;
-      text-align: center;
-      padding-top: 10px;
-    }
-    .inspect-title {
-      font-size: 17px;
-      font-weight: 700;
-      color: var(--ink);
-      letter-spacing: -0.01em;
-    }
-    .inspect-desc-row {
-      margin-top: 6px;
-      display: flex;
-      align-items: baseline;
-      justify-content: center;
-      gap: 12px;
-      font-size: 12px;
-      color: rgba(17, 17, 20, 0.42);
-    }
-    .btn-close-modal {
-      border: none;
-      background: none;
-      font: inherit;
-      color: rgba(17, 17, 20, 0.65);
-      text-decoration: underline;
-      text-decoration-color: rgba(17, 17, 20, 0.25);
-      text-underline-offset: 3px;
-      cursor: pointer;
-      transition: color 0.2s ease;
-    }
-    .btn-close-modal:hover {
-      color: var(--ink);
-    }
-
-    #confetti-canvas {
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      height: 100%;
       pointer-events: none;
-      z-index: 35;
+      z-index: 15;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+    .sp[data-popped] .sp-pop {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .sp[data-popped] .sp-hints {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .sp-pop-line {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .sp-pop-hint {
+      font-size: 14px;
+      color: #8e8e93;
+      font-weight: 400;
+    }
+    .sp-pop .sp-seal {
+      display: inline-block;
     }
   </style>
 </head>
 <body>
+  <div id="__next">
+    <main class="sp">
+      <h1 class="sp-sr">Spooky Sticker Pack — 万圣节奶蛙闪粉贴纸包</h1>
+      <p aria-live="polite" class="sp-sr">透明压纹密封塑料袋中的万圣节奶蛙闪粉贴纸包。</p>
+      <button type="button" class="sp-sr">撕开包装</button>
 
-  <div id="stage">
-    <canvas id="webgl-canvas"></canvas>
-    <div id="scatter-layer"></div>
-    <canvas id="confetti-canvas"></canvas>
+      <div class="sp-corner">
+        <span class="sp-brand">🎃 万圣节奶蛙 <span class="sp-brand-sub">· 3D 全息闪粉贴纸包</span></span>
+      </div>
+
+      <div class="sp-hints">
+        <p aria-hidden="true" class="sp-hint">沿虚线拖动即可撕开包装</p>
+        <button type="button" tabindex="-1" title="密封新包装 (R)" class="sp-seal">密封新包装 (R)</button>
+      </div>
+
+      <div role="dialog" aria-modal="true" aria-hidden="true" class="sp-pop">
+        <p class="sp-pop-line">
+          <span class="sp-pop-hint">拖动旋转 3D 视角 · 拽拉四角撕下贴纸</span>
+          <button type="button" tabindex="-1" title="关闭 (Esc)" class="sp-seal">关闭</button>
+        </p>
+      </div>
+    </main>
   </div>
 
-  <header class="top-bar">
-    <div class="brand-title">
-      <h1 id="brand-header-title">Spooky Sticker Pack</h1>
-      <p id="brand-header-sub">万圣节奶蛙闪粉贴纸包 · 3D 全息触感</p>
-    </div>
-
-    <div class="pack-switcher">
-      <button id="pack-btn-naiwa" class="pack-btn active" type="button" title="万圣节奶蛙限定贴纸包">
-        🐸 奶蛙限定
-      </button>
-      <button id="pack-btn-classic" class="pack-btn" type="button" title="经典万圣节贴纸包">
-        🎃 经典原版
-      </button>
-    </div>
-  </header>
-
-  <footer class="bottom-bar">
-    <p id="bottom-hint-text" class="bottom-hint">
-      沿虚线拖动即可撕开包装
-    </p>
-    <button id="btn-reseal-pack" class="reseal-btn" type="button" title="密封新包装 (快捷键: R)">
-      密封新包装 (R)
-    </button>
-  </footer>
-
-  <div id="inspect-modal" class="inspect-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
-    <div class="inspect-card">
-      <div class="inspect-canvas-wrap">
-        <div id="modal-3d-tilt" class="inspect-3d-box">
-          <canvas id="modal-canvas" width="640" height="640"></canvas>
-        </div>
-      </div>
-      <div class="inspect-footer">
-        <h2 id="modal-title" class="inspect-title">南瓜女巫奶蛙</h2>
-        <div class="inspect-desc-row">
-          <span id="modal-hint">拖动即可旋转 · 拽拉角隅即可剥离撕下</span>
-          <button id="btn-close-modal" type="button" class="btn-close-modal" title="关闭 (Esc)">
-            关闭
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    (function() {
-      'use strict';
-
-      // ==================== PACK DEFINITIONS ====================
-      const NAIWA_STICKERS = [
-        { id: 'witch', name: '南瓜女巫奶蛙', img: './assets/src-witch.webp', w: 180, h: 180, color: '#f59e0b' },
-        { id: 'vampire', name: '德古拉伯爵奶蛙', img: './assets/src-vampire.webp', w: 180, h: 180, color: '#ef4444' },
-        { id: 'mummy', name: '木乃伊幽灵奶蛙', img: './assets/src-mummy.webp', w: 180, h: 180, color: '#10b981' },
-        { id: 'devil', name: '捣蛋小恶魔奶蛙', img: './assets/src-devil.webp', w: 180, h: 180, color: '#dc2626' },
-        { id: 'skeleton', name: '荧光骷髅奶蛙', img: './assets/src-skeleton.webp', w: 180, h: 180, color: '#84cc16' },
-        { id: 'moon', name: 'Smiling Moon 奶蛙', img: './assets/src-moon.webp', w: 160, h: 160, color: '#a855f7' },
-        { id: 'cauldron', name: '魔法坩埚奶蛙', img: './assets/src-cauldron.webp', w: 160, h: 160, color: '#06b6d4' },
-        { id: 'classic', name: '金闪闪初代奶蛙', img: './assets/src-classic.webp', w: 180, h: 180, color: '#eab308' },
-        { id: 'candycorn', name: '闪粉玉米糖', vector: 'candycorn', w: 90, h: 100, color: '#f59e0b' },
-        { id: 'lollipop', name: '漩涡魔法棒棒糖', vector: 'lollipop', w: 95, h: 125, color: '#ec4899' },
-        { id: 'purplecandy', name: '紫夜闪粉糖果', vector: 'purplecandy', w: 105, h: 75, color: '#8b5cf6' },
-        { id: 'bat', name: '暗夜小蝙蝠', vector: 'bat', w: 110, h: 80, color: '#374151' },
-        { id: 'pumpkin_mini', name: '闪粉南瓜怪', vector: 'pumpkin', w: 105, h: 95, color: '#ea580c' },
-        { id: 'ghost_mini', name: '白闪粉小幽灵', vector: 'ghost', w: 95, h: 110, color: '#93c5fd' },
-        { id: 'star_gold', name: '流金四芒星', vector: 'star_gold', w: 75, h: 75, color: '#fbbf24' },
-        { id: 'star_purple', name: '紫晶四芒星', vector: 'star_purple', w: 75, h: 75, color: '#c084fc' }
-      ];
-
-      const CLASSIC_STICKERS = [
-        { id: 'c_witch', name: 'Little Witch', atlasX: 14, atlasY: 14, atlasW: 870, atlasH: 1098, w: 175, h: 220, color: '#f472b6' },
-        { id: 'c_ghost', name: 'Waving Ghost', atlasX: 1530, atlasY: 14, atlasW: 650, atlasH: 756, w: 160, h: 186, color: '#60a5fa' },
-        { id: 'c_pumpkin', name: 'Jack-o’-Lantern', atlasX: 14, atlasY: 1784, atlasW: 588, atlasH: 512, w: 160, h: 140, color: '#f97316' },
-        { id: 'c_cat', name: 'Black Cat', atlasX: 898, atlasY: 14, atlasW: 618, atlasH: 832, w: 155, h: 208, color: '#4b5563' },
-        { id: 'c_ghost_hat', name: 'Ghost in a Hat', atlasX: 2194, atlasY: 14, atlasW: 597, atlasH: 690, w: 150, h: 174, color: '#a78bfa' },
-        { id: 'c_cauldron', name: 'Bubbling Cauldron', atlasX: 14, atlasY: 1126, atlasW: 535, atlasH: 644, w: 145, h: 175, color: '#34d399' },
-        { id: 'c_cloud_pumpkin', name: 'Pumpkin on a Cloud', atlasX: 1133, atlasY: 1126, atlasW: 658, atlasH: 630, w: 160, h: 153, color: '#fb923c' },
-        { id: 'c_house', name: 'Haunted House', atlasX: 1805, atlasY: 1126, atlasW: 538, atlasH: 580, w: 150, h: 162, color: '#818cf8' },
-        { id: 'c_moon', name: 'Smiling Moon', atlasX: 563, atlasY: 1126, atlasW: 556, atlasH: 636, w: 148, h: 169, color: '#facc15' },
-        { id: 'c_cat_face', name: 'Kitty Face', atlasX: 987, atlasY: 1784, atlasW: 504, atlasH: 442, w: 140, h: 123, color: '#f43f5e' },
-        { id: 'c_bat', name: 'Black Bat', atlasX: 1505, atlasY: 1784, atlasW: 624, atlasH: 428, w: 160, h: 110, color: '#1f2937' },
-        { id: 'c_candy', name: 'Wrapped Candy', atlasX: 14, atlasY: 2310, atlasW: 501, atlasH: 306, w: 145, h: 89, color: '#fb7185' },
-        { id: 'c_lollipop', name: 'Swirly Lollipop', atlasX: 616, atlasY: 1784, atlasW: 357, atlasH: 498, w: 105, h: 146, color: '#ec4899' },
-        { id: 'c_candycorn', name: 'Candy Corn', atlasX: 2593, atlasY: 1784, atlasW: 314, atlasH: 346, w: 95, h: 105, color: '#f59e0b' },
-        { id: 'c_moon_purple', name: 'Purple Moon', atlasX: 529, atlasY: 2310, atlasW: 246, atlasH: 306, w: 85, h: 106, color: '#c084fc' },
-        { id: 'c_star_a', name: 'Wishing Star', atlasX: 1075, atlasY: 2310, atlasW: 269, atlasH: 289, w: 85, h: 91, color: '#fde047' },
-        { id: 'c_star_b', name: 'Lucky Star', atlasX: 2450, atlasY: 2310, atlasW: 255, atlasH: 271, w: 80, h: 85, color: '#f472b6' },
-        { id: 'c_spark', name: 'Magic Spark', atlasX: 1906, atlasY: 2310, atlasW: 268, atlasH: 281, w: 82, h: 86, color: '#67e8f9' }
-      ];
-
-      const state = {
-        packType: 'naiwa',
-        phase: 'sealed',
-        tearProgress: 0.0,
-        isDraggingTear: false,
-        dragStartX: 0,
-        dragStartY: 0,
-        dragCurX: 0,
-        dragCurY: 0,
-        activeSticker: null,
-        modalOpen: false,
-        modalTiltX: 0,
-        modalTiltY: 0,
-        modalTargetTiltX: 0,
-        modalTargetTiltY: 0,
-        isPeeling: false,
-        peelStart: { x: 0, y: 0 },
-        peelCur: { x: 0, y: 0 },
-        peelCorner: { x: 0, y: 0 },
-        peeledPercent: 0,
-        isPeeledOff: false,
-        scatteredStickers: []
-      };
-
-      // ==================== TACTILE WEB AUDIO SYNTHESIZER ====================
-      let audioCtx = null;
-      function getAudioContext() {
-        if (!audioCtx) {
-          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-          if (AudioContextClass) audioCtx = new AudioContextClass();
-        }
-        if (audioCtx && audioCtx.state === 'suspended') {
-          audioCtx.resume();
-        }
-        return audioCtx;
-      }
-
-      function playTactileSound(kind) {
-        try {
-          const ctx = getAudioContext();
-          if (!ctx) return;
-          const now = ctx.currentTime;
-
-          if (kind === 'tear-drag') {
-            const bufSize = Math.floor(ctx.sampleRate * 0.05);
-            const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
-            const data = buf.getChannelData(0);
-            for (let i = 0; i < bufSize; i++) {
-              data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufSize * 0.4));
-            }
-            const noise = ctx.createBufferSource();
-            noise.buffer = buf;
-            const filter = ctx.createBiquadFilter();
-            filter.type = 'bandpass';
-            filter.frequency.setValueAtTime(1400 + Math.random() * 800, now);
-            filter.Q.setValueAtTime(3.2, now);
-            const gain = ctx.createGain();
-            gain.gain.setValueAtTime(0.08, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-            noise.connect(filter);
-            filter.connect(gain);
-            gain.connect(ctx.destination);
-            noise.start(now);
-          } else if (kind === 'tear-pop') {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(420, now);
-            osc.frequency.exponentialRampToValueAtTime(95, now + 0.16);
-            gain.gain.setValueAtTime(0.24, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start(now);
-            osc.stop(now + 0.18);
-          } else if (kind === 'chime') {
-            [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
-              const osc = ctx.createOscillator();
-              const gain = ctx.createGain();
-              osc.type = 'triangle';
-              osc.frequency.setValueAtTime(freq, now + idx * 0.04);
-              gain.gain.setValueAtTime(0.07, now + idx * 0.04);
-              gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.04 + 0.28);
-              osc.connect(gain);
-              gain.connect(ctx.destination);
-              osc.start(now + idx * 0.04);
-              osc.stop(now + idx * 0.04 + 0.3);
-            });
-          } else if (kind === 'peel-drag') {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(120 + Math.random() * 60, now);
-            osc.frequency.exponentialRampToValueAtTime(340, now + 0.08);
-            gain.gain.setValueAtTime(0.035, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start(now);
-            osc.stop(now + 0.09);
-          } else if (kind === 'peel-off') {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(680, now);
-            osc.frequency.exponentialRampToValueAtTime(220, now + 0.12);
-            gain.gain.setValueAtTime(0.22, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start(now);
-            osc.stop(now + 0.14);
-          } else if (kind === 'reseal') {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(240, now);
-            osc.frequency.exponentialRampToValueAtTime(560, now + 0.18);
-            gain.gain.setValueAtTime(0.12, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start(now);
-            osc.stop(now + 0.22);
-          }
-        } catch (e) {}
-      }
-
-      // ==================== MINI VECTOR GRAPHICS ====================
-      function drawMiniVectorSticker(type, ctx, w, h) {
-        ctx.save();
-        ctx.translate(w / 2, h / 2);
-        const s = Math.min(w, h) / 100;
-        ctx.scale(s, s);
-
-        if (type === 'candycorn') {
-          ctx.beginPath();
-          ctx.moveTo(0, -42);
-          ctx.bezierCurveTo(16, -42, 34, 28, 32, 40);
-          ctx.bezierCurveTo(30, 48, -30, 48, -32, 40);
-          ctx.bezierCurveTo(-34, 28, -16, -42, 0, -42);
-          ctx.closePath();
-          ctx.fillStyle = '#ffffff';
-          ctx.fill();
-          ctx.lineWidth = 6; ctx.strokeStyle = '#ffffff'; ctx.stroke();
-
-          ctx.save();
-          ctx.clip();
-          ctx.fillStyle = '#f59e0b'; ctx.fillRect(-40, 16, 80, 35);
-          ctx.fillStyle = '#ea580c'; ctx.fillRect(-40, -14, 80, 30);
-          ctx.fillStyle = '#ffffff'; ctx.fillRect(-40, -45, 80, 32);
-          ctx.restore();
-        } else if (type === 'lollipop') {
-          ctx.beginPath();
-          ctx.arc(0, -12, 32, 0, Math.PI * 2);
-          ctx.fillStyle = '#ffffff';
-          ctx.fill();
-          ctx.lineWidth = 6; ctx.strokeStyle = '#ffffff'; ctx.stroke();
-
-          ctx.save();
-          ctx.clip();
-          ctx.fillStyle = '#f472b6';
-          ctx.fillRect(-35, -45, 70, 70);
-          ctx.strokeStyle = '#ffffff';
-          ctx.lineWidth = 6;
-          ctx.beginPath();
-          for (let r = 0; r < 30; r += 1.5) {
-            const a = r * 0.45;
-            const x = Math.cos(a) * r;
-            const y = -12 + Math.sin(a) * r;
-            if (r === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-          }
-          ctx.stroke();
-          ctx.restore();
-
-          ctx.beginPath();
-          ctx.moveTo(0, 20); ctx.lineTo(0, 46);
-          ctx.lineWidth = 7; ctx.lineCap = 'round';
-          ctx.strokeStyle = '#ffffff'; ctx.stroke();
-          ctx.lineWidth = 4; ctx.strokeStyle = '#e2e8f0'; ctx.stroke();
-        } else if (type === 'purplecandy') {
-          ctx.fillStyle = '#ffffff';
-          ctx.beginPath();
-          ctx.ellipse(0, 0, 26, 18, 0, 0, Math.PI * 2);
-          ctx.moveTo(-22, -4); ctx.lineTo(-44, -18); ctx.lineTo(-40, 0); ctx.lineTo(-44, 18); ctx.lineTo(-22, 4);
-          ctx.moveTo(22, -4); ctx.lineTo(44, -18); ctx.lineTo(40, 0); ctx.lineTo(44, 18); ctx.lineTo(22, 4);
-          ctx.fill();
-          ctx.lineWidth = 5; ctx.strokeStyle = '#ffffff'; ctx.stroke();
-
-          ctx.fillStyle = '#8b5cf6';
-          ctx.beginPath();
-          ctx.ellipse(0, 0, 24, 16, 0, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.fillStyle = '#a78bfa';
-          ctx.beginPath();
-          ctx.moveTo(-38, -14); ctx.lineTo(-20, 0); ctx.lineTo(-38, 14); ctx.closePath();
-          ctx.moveTo(38, -14); ctx.lineTo(20, 0); ctx.lineTo(38, 14); ctx.closePath();
-          ctx.fill();
-        } else if (type === 'bat') {
-          ctx.fillStyle = '#ffffff';
-          ctx.beginPath();
-          ctx.arc(0, 0, 16, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.lineWidth = 6; ctx.strokeStyle = '#ffffff'; ctx.stroke();
-
-          ctx.fillStyle = '#1f2937';
-          ctx.beginPath();
-          ctx.arc(0, 4, 14, 0, Math.PI * 2);
-          ctx.moveTo(-10, -4); ctx.lineTo(-14, -18); ctx.lineTo(-4, -8);
-          ctx.moveTo(10, -4); ctx.lineTo(14, -18); ctx.lineTo(4, -8);
-          ctx.moveTo(-10, 0);
-          ctx.bezierCurveTo(-26, -24, -46, -10, -42, 10);
-          ctx.bezierCurveTo(-34, 16, -20, 10, -10, 12);
-          ctx.moveTo(10, 0);
-          ctx.bezierCurveTo(26, -24, 46, -10, 42, 10);
-          ctx.bezierCurveTo(34, 16, 20, 10, 10, 12);
-          ctx.fill();
-
-          ctx.fillStyle = '#ffffff';
-          ctx.beginPath();
-          ctx.arc(-5, 4, 3, 0, Math.PI * 2);
-          ctx.arc(5, 4, 3, 0, Math.PI * 2);
-          ctx.fill();
-        } else if (type === 'pumpkin') {
-          ctx.fillStyle = '#ffffff';
-          ctx.beginPath();
-          ctx.ellipse(0, 4, 34, 28, 0, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.lineWidth = 6; ctx.strokeStyle = '#ffffff'; ctx.stroke();
-
-          ctx.fillStyle = '#f97316';
-          ctx.beginPath();
-          ctx.ellipse(0, 4, 31, 25, 0, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.strokeStyle = '#ea580c';
-          ctx.lineWidth = 2.5;
-          ctx.beginPath();
-          ctx.ellipse(-14, 4, 14, 24, -0.15, 0, Math.PI * 2);
-          ctx.ellipse(14, 4, 14, 24, 0.15, 0, Math.PI * 2);
-          ctx.stroke();
-
-          ctx.fillStyle = '#15803d';
-          ctx.beginPath();
-          ctx.moveTo(-3, -20); ctx.lineTo(5, -28); ctx.lineTo(8, -20); ctx.closePath();
-          ctx.fill();
-        } else if (type === 'ghost') {
-          ctx.fillStyle = '#ffffff';
-          ctx.beginPath();
-          ctx.arc(0, -12, 24, Math.PI, 0);
-          ctx.bezierCurveTo(24, 12, 28, 30, 20, 36);
-          ctx.bezierCurveTo(10, 40, 2, 28, -6, 36);
-          ctx.bezierCurveTo(-14, 40, -24, 30, -24, -12);
-          ctx.fill();
-          ctx.lineWidth = 6; ctx.strokeStyle = '#ffffff'; ctx.stroke();
-
-          ctx.fillStyle = '#1e293b';
-          ctx.beginPath();
-          ctx.arc(-7, -8, 3.5, 0, Math.PI * 2);
-          ctx.arc(7, -8, 3.5, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = '#f472b6';
-          ctx.beginPath();
-          ctx.arc(-13, -2, 3.5, 0, Math.PI * 2);
-          ctx.arc(13, -2, 3.5, 0, Math.PI * 2);
-          ctx.fill();
-        } else if (type === 'star_gold' || type === 'star_purple') {
-          const col = type === 'star_gold' ? '#fbbf24' : '#c084fc';
-          ctx.fillStyle = '#ffffff';
-          ctx.beginPath();
-          for (let i = 0; i < 8; i++) {
-            const rad = (i * Math.PI) / 4;
-            const dist = i % 2 === 0 ? 38 : 9;
-            const x = Math.cos(rad) * dist;
-            const y = Math.sin(rad) * dist;
-            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-          }
-          ctx.closePath();
-          ctx.fill();
-          ctx.lineWidth = 5; ctx.strokeStyle = '#ffffff'; ctx.stroke();
-
-          ctx.fillStyle = col;
-          ctx.beginPath();
-          for (let i = 0; i < 8; i++) {
-            const rad = (i * Math.PI) / 4;
-            const dist = i % 2 === 0 ? 32 : 7;
-            const x = Math.cos(rad) * dist;
-            const y = Math.sin(rad) * dist;
-            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-          }
-          ctx.closePath();
-          ctx.fill();
-        }
-        ctx.restore();
-      }
-
-      const miniVectorCanvases = {};
-      ['candycorn', 'lollipop', 'purplecandy', 'bat', 'pumpkin', 'ghost', 'star_gold', 'star_purple'].forEach(key => {
-        const cv = document.createElement('canvas');
-        cv.width = 160; cv.height = 160;
-        const ctx = cv.getContext('2d');
-        drawMiniVectorSticker(key, ctx, 160, 160);
-        miniVectorCanvases[key] = cv;
-      });
-
-      // ==================== THREE.JS 3D SCENE ====================
-      let renderer, scene, camera;
-      let pouchMesh, cardTopMesh, cardFlapMesh;
-      let filmTexture, cardTexture, sheetTexture;
-      let pouchUniforms, cardFlapUniforms;
-
-      const canvasEl = document.getElementById('webgl-canvas');
-
-      function initWebGLScene() {
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-
-        scene = new THREE.Scene();
-        camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 100);
-        camera.position.set(0, 0, 4.8);
-
-        renderer = new THREE.WebGLRenderer({
-          canvas: canvasEl,
-          alpha: true,
-          antialias: true,
-          powerPreference: 'high-performance'
-        });
-        renderer.setSize(width, height);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-        const textureLoader = new THREE.TextureLoader();
-        filmTexture = textureLoader.load('./assets/film.webp');
-        filmTexture.wrapS = filmTexture.wrapT = THREE.ClampToEdgeWrapping;
-
-        loadPackTextures(state.packType);
-
-        window.addEventListener('resize', onWindowResize);
-      }
-
-      function loadPackTextures(type) {
-        const textureLoader = new THREE.TextureLoader();
-        const cardUrl = type === 'naiwa' ? './assets/naiwa-card.webp' : './assets/card.webp';
-        const sheetUrl = type === 'naiwa' ? './assets/naiwa-pack-sheet.webp' : './assets/sheet.webp';
-
-        cardTexture = textureLoader.load(cardUrl, () => {
-          rebuildPackMeshes();
-        });
-        sheetTexture = textureLoader.load(sheetUrl, () => {
-          rebuildPackMeshes();
-        });
-      }
-
-      function rebuildPackMeshes() {
-        if (pouchMesh) scene.remove(pouchMesh);
-        if (cardTopMesh) scene.remove(cardTopMesh);
-        if (cardFlapMesh) scene.remove(cardFlapMesh);
-
-        const packW = 1.95;
-        const packH = 2.45;
-
-        // Pouch Mesh
-        const pouchGeo = new THREE.PlaneGeometry(packW, packH * 0.88, 64, 64);
-        pouchUniforms = {
-          uTime: { value: 0 },
-          uFilm: { value: filmTexture },
-          uSheet: { value: sheetTexture },
-          uTorn: { value: 0.0 },
-          uMouse: { value: new THREE.Vector2(0, 0) }
-        };
-
-        const pouchMat = new THREE.ShaderMaterial({
-          uniforms: pouchUniforms,
-          transparent: true,
-          side: THREE.DoubleSide,
-          vertexShader: `
-            uniform float uTime;
-            uniform vec2 uMouse;
-            varying vec2 vUv;
-            varying vec3 vNormal;
-            varying vec3 vView;
-
-            void main() {
-              vUv = uv;
-              vec3 pos = position;
-              float puff = sin(uv.x * 3.14159) * sin(uv.y * 3.14159) * 0.045;
-              float wave = sin(uv.y * 8.0 + uTime * 2.0) * 0.008;
-              pos.z += puff + wave;
-
-              vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
-              vView = -mvPos.xyz;
-              vNormal = normalMatrix * normal;
-              gl_Position = projectionMatrix * mvPos;
-            }
-          `,
-          fragmentShader: `
-            uniform sampler2D uFilm;
-            uniform sampler2D uSheet;
-            uniform float uTorn;
-            uniform vec2 uMouse;
-            varying vec2 vUv;
-            varying vec3 vNormal;
-            varying vec3 vView;
-
-            void main() {
-              if (uTorn > 0.99) discard;
-
-              vec4 sheetCol = texture2D(uSheet, vUv);
-              vec4 filmCol = texture2D(uFilm, vUv * 1.5);
-
-              vec3 N = normalize(vNormal + (filmCol.rgb - 0.5) * 0.35);
-              vec3 V = normalize(vView);
-              vec3 L = normalize(vec3(uMouse.x * 1.5, uMouse.y * 1.5 + 0.8, 1.2));
-              vec3 H = normalize(L + V);
-
-              float spec = pow(max(dot(N, H), 0.0), 32.0) * 0.65;
-              float fresnel = pow(1.0 - max(dot(N, V), 0.0), 2.5) * 0.35;
-
-              vec3 finalColor = sheetCol.rgb * 0.96 + vec3(spec + fresnel) + vec3(0.04, 0.04, 0.06);
-              float alpha = mix(0.92, 0.0, uTorn);
-
-              gl_FragColor = vec4(finalColor, alpha);
-            }
-          `
-        });
-        pouchMesh = new THREE.Mesh(pouchGeo, pouchMat);
-        pouchMesh.position.set(0, -0.32, 0);
-        scene.add(pouchMesh);
-
-        // Header Card (Fixed Top + 3D Rolling Flap)
-        const headerW = packW * 1.02;
-        const headerH = packW * (636.0 / 1800.0);
-
-        const topGeo = new THREE.PlaneGeometry(headerW, headerH * 0.42, 32, 16);
-        const topMat = new THREE.ShaderMaterial({
-          uniforms: {
-            uCard: { value: cardTexture }
-          },
-          transparent: true,
-          side: THREE.DoubleSide,
-          vertexShader: `
-            varying vec2 vUv;
-            void main() {
-              vUv = vec2(uv.x, uv.y * 0.42 + 0.58);
-              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }
-          `,
-          fragmentShader: `
-            uniform sampler2D uCard;
-            varying vec2 vUv;
-            void main() {
-              vec4 col = texture2D(uCard, vUv);
-              gl_FragColor = col;
-            }
-          `
-        });
-        cardTopMesh = new THREE.Mesh(topGeo, topMat);
-        cardTopMesh.position.set(0, 0.95, 0.02);
-        scene.add(cardTopMesh);
-
-        const flapGeo = new THREE.PlaneGeometry(headerW, headerH * 0.58, 64, 32);
-        cardFlapUniforms = {
-          uCard: { value: cardTexture },
-          uFront: { value: 0.0 },
-          uRadius: { value: 0.075 },
-          uSlant: { value: -0.22 },
-          uFly: { value: 0.0 }
-        };
-
-        const flapMat = new THREE.ShaderMaterial({
-          uniforms: cardFlapUniforms,
-          transparent: true,
-          side: THREE.DoubleSide,
-          vertexShader: `
-            uniform float uFront;
-            uniform float uRadius;
-            uniform float uSlant;
-            uniform float uFly;
-            varying vec2 vUv;
-            varying float vBack;
-            varying float vTornEdge;
-
-            void main() {
-              vUv = vec2(uv.x, uv.y * 0.58);
-              vec3 pos = position;
-
-              float u = uv.x;
-              float progress = uFront * 1.15;
-              float d = progress - (u * cos(uSlant) - uv.y * sin(uSlant));
-
-              vBack = 0.0;
-              vTornEdge = 0.0;
-
-              if (d > 0.0) {
-                float angle = min(d / uRadius, 3.14159 * 1.5);
-                pos.z += uRadius * (1.0 - cos(angle));
-                pos.y -= uRadius * sin(angle) * 0.6;
-                pos.x -= (1.0 - cos(angle)) * 0.02;
-
-                if (angle > 1.57) {
-                  vBack = 1.0;
-                }
-                if (abs(d - 0.01) < 0.02) {
-                  vTornEdge = 1.0;
-                }
-              }
-
-              if (uFly > 0.0) {
-                pos.y += uFly * 1.8;
-                pos.z += uFly * 0.6;
-                pos.x += uFly * 0.3;
-              }
-
-              gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-            }
-          `,
-          fragmentShader: `
-            uniform sampler2D uCard;
-            uniform float uFly;
-            varying vec2 vUv;
-            varying float vBack;
-            varying float vTornEdge;
-
-            void main() {
-              if (uFly > 1.5) discard;
-
-              vec4 col = texture2D(uCard, vUv);
-              if (vBack > 0.5) {
-                col = vec4(0.98, 0.76, 0.84, col.a);
-              }
-              if (vTornEdge > 0.5) {
-                col = vec4(1.0, 1.0, 1.0, 1.0);
-              }
-              gl_FragColor = col;
-            }
-          `
-        });
-        cardFlapMesh = new THREE.Mesh(flapGeo, flapMat);
-        cardFlapMesh.position.set(0, 0.68, 0.02);
-        scene.add(cardFlapMesh);
-      }
-
-      function onWindowResize() {
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-        camera.aspect = width / height;
-        camera.updateProjectionMatrix();
-        renderer.setSize(width, height);
-      }
-
-      // ==================== CELEBRATION CONFETTI BURST ====================
-      const confettiCanvas = document.getElementById('confetti-canvas');
-      const cctx = confettiCanvas.getContext('2d');
-      let confettiParticles = [];
-      let confettiAnimId = null;
-
-      function resizeConfettiCanvas() {
-        confettiCanvas.width = window.innerWidth * window.devicePixelRatio;
-        confettiCanvas.height = window.innerHeight * window.devicePixelRatio;
-        cctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-      }
-      window.addEventListener('resize', resizeConfettiCanvas);
-      resizeConfettiCanvas();
-
-      function triggerCelebrationBurst(cx, cy) {
-        confettiParticles = [];
-        const colors = ['#f472b6', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa', '#f87171', '#ffffff'];
-
-        for (let i = 0; i < 80; i++) {
-          const angle = (Math.PI * 2 * i) / 80 + (Math.random() - 0.5) * 0.4;
-          const speed = 4 + Math.random() * 9;
-          confettiParticles.push({
-            x: cx,
-            y: cy,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed - 3.5,
-            size: 6 + Math.random() * 8,
-            color: colors[Math.floor(Math.random() * colors.length)],
-            rot: Math.random() * Math.PI * 2,
-            vRot: (Math.random() - 0.5) * 0.25,
-            gravity: 0.18,
-            alpha: 1.0,
-            decay: 0.012 + Math.random() * 0.008,
-            shape: Math.random() > 0.4 ? 'rect' : 'star'
-          });
-        }
-        playTactileSound('tear-pop');
-        playTactileSound('chime');
-
-        if (!confettiAnimId) {
-          runConfettiLoop();
-        }
-      }
-
-      function runConfettiLoop() {
-        cctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-
-        for (let i = confettiParticles.length - 1; i >= 0; i--) {
-          const p = confettiParticles[i];
-          p.x += p.vx;
-          p.y += p.vy;
-          p.vy += p.gravity;
-          p.rot += p.vRot;
-          p.alpha -= p.decay;
-
-          if (p.alpha <= 0) {
-            confettiParticles.splice(i, 1);
-            continue;
-          }
-
-          cctx.save();
-          cctx.globalAlpha = Math.max(0, p.alpha);
-          cctx.translate(p.x, p.y);
-          cctx.rotate(p.rot);
-          cctx.fillStyle = p.color;
-
-          if (p.shape === 'rect') {
-            cctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
-          } else {
-            cctx.beginPath();
-            for (let s = 0; s < 8; s++) {
-              const rad = (s * Math.PI) / 4;
-              const r = s % 2 === 0 ? p.size : p.size * 0.3;
-              const sx = Math.cos(rad) * r;
-              const sy = Math.sin(rad) * r;
-              if (s === 0) cctx.moveTo(sx, sy); else cctx.lineTo(sx, sy);
-            }
-            cctx.closePath();
-            cctx.fill();
-          }
-          cctx.restore();
-        }
-
-        if (confettiParticles.length > 0) {
-          confettiAnimId = requestAnimationFrame(runConfettiLoop);
-        } else {
-          confettiAnimId = null;
-        }
-      }
-
-      // ==================== SCATTERED STICKERS TABLE ENGINE ====================
-      const scatterLayer = document.getElementById('scatter-layer');
-
-      function spawnScatteredStickers() {
-        scatterLayer.innerHTML = '';
-        state.scatteredStickers = [];
-
-        const list = state.packType === 'naiwa' ? NAIWA_STICKERS : CLASSIC_STICKERS;
-        const W = window.innerWidth;
-        const H = window.innerHeight;
-        const cx = W / 2;
-        const cy = H / 2;
-
-        list.forEach((item, idx) => {
-          const el = document.createElement('div');
-          el.className = 'table-sticker';
-          el.setAttribute('data-id', item.id);
-          el.setAttribute('tabindex', '0');
-
-          const angle = (Math.PI * 2 * idx) / list.length + (Math.random() - 0.5) * 0.3;
-          const radius = Math.min(W, H) * (0.24 + (idx % 2 === 0 ? 0.16 : 0.05) + Math.random() * 0.08);
-          const targetX = Math.max(20, Math.min(W - item.w - 20, cx + Math.cos(angle) * radius - item.w / 2));
-          const targetY = Math.max(70, Math.min(H - item.h - 60, cy + Math.sin(angle) * radius - item.h / 2));
-          const targetRot = (Math.random() - 0.5) * 28;
-
-          el.style.width = item.w + 'px';
-          el.style.height = item.h + 'px';
-          el.style.left = targetX + 'px';
-          el.style.top = targetY + 'px';
-          el.style.setProperty('--rot', targetRot + 'deg');
-          el.style.transform = `scale(0.01) rotate(0deg)`;
-          el.style.zIndex = 100 + idx;
-
-          if (item.img) {
-            const img = document.createElement('img');
-            img.src = item.img;
-            img.alt = item.name;
-            el.appendChild(img);
-          } else if (item.vector) {
-            const cv = miniVectorCanvases[item.vector];
-            if (cv) {
-              const img = document.createElement('img');
-              img.src = cv.toDataURL();
-              img.alt = item.name;
-              el.appendChild(img);
-            }
-          } else if (item.atlasX !== undefined) {
-            const cv = document.createElement('canvas');
-            cv.width = item.atlasW;
-            cv.height = item.atlasH;
-            const ctx = cv.getContext('2d');
-            const imgEl = new Image();
-            imgEl.src = './assets/sheet.webp';
-            imgEl.onload = () => {
-              ctx.drawImage(imgEl, item.atlasX, item.atlasY, item.atlasW, item.atlasH, 0, 0, item.atlasW, item.atlasH);
-              const img = document.createElement('img');
-              img.src = cv.toDataURL();
-              img.alt = item.name;
-              el.appendChild(img);
-            };
-          }
-
-          scatterLayer.appendChild(el);
-
-          const delay = idx * 28;
-          setTimeout(() => {
-            el.style.transition = 'transform 0.65s cubic-bezier(0.18, 1, 0.3, 1), left 0.65s cubic-bezier(0.18, 1, 0.3, 1), top 0.65s cubic-bezier(0.18, 1, 0.3, 1)';
-            el.style.transform = `scale(1) rotate(${targetRot}deg)`;
-          }, delay);
-
-          const stState = {
-            id: item.id,
-            def: item,
-            el: el,
-            x: targetX,
-            y: targetY,
-            rot: targetRot,
-            vx: 0,
-            vy: 0,
-            isDragging: false,
-            pointerStart: { x: 0, y: 0 },
-            elemStart: { x: 0, y: 0 },
-            lastMoveTime: 0,
-            hasMoved: false
-          };
-          state.scatteredStickers.push(stState);
-
-          bindStickerInteraction(stState);
-        });
-
-        const hintEl = document.getElementById('bottom-hint-text');
-        const resealBtn = document.getElementById('btn-reseal-pack');
-        if (hintEl) hintEl.textContent = '点击任意贴纸即可查看 3D 全息特写与撕下体验';
-        if (resealBtn) resealBtn.style.display = 'inline-block';
-      }
-
-      function bindStickerInteraction(st) {
-        const el = st.el;
-        let highestZ = 300;
-
-        el.addEventListener('pointerdown', (e) => {
-          e.stopPropagation();
-          st.isDragging = true;
-          st.hasMoved = false;
-          st.pointerStart = { x: e.clientX, y: e.clientY };
-          st.elemStart = { x: st.x, y: st.y };
-          st.lastMoveTime = performance.now();
-          st.vx = 0;
-          st.vy = 0;
-
-          highestZ += 1;
-          el.style.zIndex = highestZ;
-          el.setPointerCapture(e.pointerId);
-          playTactileSound('peel-drag');
-        });
-
-        el.addEventListener('pointermove', (e) => {
-          if (!st.isDragging) return;
-          const dx = e.clientX - st.pointerStart.x;
-          const dy = e.clientY - st.pointerStart.y;
-          if (Math.hypot(dx, dy) > 5) {
-            st.hasMoved = true;
-          }
-
-          const now = performance.now();
-          const dt = Math.max(1, now - st.lastMoveTime);
-          st.vx = (dx / dt) * 12;
-          st.vy = (dy / dt) * 12;
-          st.lastMoveTime = now;
-
-          st.x = st.elemStart.x + dx;
-          st.y = st.elemStart.y + dy;
-
-          el.style.transition = 'none';
-          el.style.left = st.x + 'px';
-          el.style.top = st.y + 'px';
-        });
-
-        const onEnd = (e) => {
-          if (!st.isDragging) return;
-          st.isDragging = false;
-
-          if (!st.hasMoved) {
-            openInspectModal(st.def);
-            return;
-          }
-
-          el.style.transition = 'left 0.4s cubic-bezier(0.18, 0.9, 0.2, 1), top 0.4s cubic-bezier(0.18, 0.9, 0.2, 1)';
-          st.x += st.vx * 4.5;
-          st.y += st.vy * 4.5;
-
-          const W = window.innerWidth;
-          const H = window.innerHeight;
-          st.x = Math.max(10, Math.min(W - st.def.w - 10, st.x));
-          st.y = Math.max(60, Math.min(H - st.def.h - 50, st.y));
-
-          el.style.left = st.x + 'px';
-          el.style.top = st.y + 'px';
-          playTactileSound('peel-drag');
-        };
-
-        el.addEventListener('pointerup', onEnd);
-        el.addEventListener('pointercancel', onEnd);
-      }
-
-      // ==================== 3D INSPECTION MODAL ====================
-      const inspectModal = document.getElementById('inspect-modal');
-      const modalTiltBox = document.getElementById('modal-3d-tilt');
-      const modalCanvas = document.getElementById('modal-canvas');
-      const mctx = modalCanvas.getContext('2d');
-      const modalTitle = document.getElementById('modal-title');
-      const btnCloseModal = document.getElementById('btn-close-modal');
-
-      let currentInspectItem = null;
-      let inspectImage = null;
-
-      function openInspectModal(item) {
-        currentInspectItem = item;
-        state.modalOpen = true;
-        state.modalTiltX = 0;
-        state.modalTiltY = 0;
-        state.modalTargetTiltX = 0;
-        state.modalTargetTiltY = 0;
-        state.isPeeling = false;
-        state.peeledPercent = 0;
-        state.isPeeledOff = false;
-
-        modalTitle.textContent = item.name;
-        inspectModal.classList.add('open');
-        inspectModal.setAttribute('aria-hidden', 'false');
-
-        if (item.img) {
-          inspectImage = new Image();
-          inspectImage.src = item.img;
-          inspectImage.onload = () => renderModalCanvas();
-        } else if (item.vector) {
-          inspectImage = miniVectorCanvases[item.vector];
-          renderModalCanvas();
-        } else if (item.atlasX !== undefined) {
-          const cv = document.createElement('canvas');
-          cv.width = item.atlasW; cv.height = item.atlasH;
-          const ctx = cv.getContext('2d');
-          const imgEl = new Image();
-          imgEl.src = './assets/sheet.webp';
-          imgEl.onload = () => {
-            ctx.drawImage(imgEl, item.atlasX, item.atlasY, item.atlasW, item.atlasH, 0, 0, item.atlasW, item.atlasH);
-            inspectImage = cv;
-            renderModalCanvas();
-          };
-        }
-        playTactileSound('chime');
-      }
-
-      function closeInspectModal() {
-        state.modalOpen = false;
-        inspectModal.classList.remove('open');
-        inspectModal.setAttribute('aria-hidden', 'true');
-        modalTiltBox.style.transform = 'rotateX(0deg) rotateY(0deg)';
-      }
-
-      btnCloseModal.addEventListener('click', closeInspectModal);
-      inspectModal.addEventListener('click', (e) => {
-        if (e.target === inspectModal) closeInspectModal();
-      });
-
-      function renderModalCanvas() {
-        if (!state.modalOpen || !inspectImage) return;
-
-        const W = modalCanvas.width;
-        const H = modalCanvas.height;
-        mctx.clearRect(0, 0, W, H);
-
-        if (state.isPeeledOff) {
-          drawReleaseBackingPaper(mctx, W, H);
-          return;
-        }
-
-        const off = document.createElement('canvas');
-        off.width = W; off.height = H;
-        const octx = off.getContext('2d');
-
-        const pad = 60;
-        const drawW = W - pad * 2;
-        const drawH = H - pad * 2;
-        octx.drawImage(inspectImage, pad, pad, drawW, drawH);
-
-        // Holographic Hexagonal Sequin Glitter
-        const tx = state.modalTiltX;
-        const ty = state.modalTiltY;
-        const tiltMag = Math.hypot(tx, ty);
-
-        if (tiltMag > 0.02) {
-          octx.save();
-          octx.globalCompositeOperation = 'source-atop';
-
-          const hexSize = 14;
-          const cols = Math.ceil(W / hexSize);
-          const rows = Math.ceil(H / (hexSize * 0.866));
-
-          for (let r = 0; r < rows; r++) {
-            for (let c = 0; c < cols; c++) {
-              const hx = c * hexSize + (r % 2 === 0 ? 0 : hexSize * 0.5);
-              const hy = r * hexSize * 0.866;
-
-              const dot = Math.sin((hx * 0.04 * tx + hy * 0.04 * ty) * 4.0);
-              if (dot > 0.6) {
-                const hue = Math.floor((hx * 0.8 + hy * 0.6 + tiltMag * 360) % 360);
-                octx.fillStyle = `hsla(${hue}, 90%, 65%, ${Math.min(0.65, (dot - 0.6) * 1.8)})`;
-                octx.beginPath();
-                octx.arc(hx, hy, hexSize * 0.42, 0, Math.PI * 2);
-                octx.fill();
-              }
-            }
-          }
-
-          const glossGrad = octx.createLinearGradient(
-            W * (0.5 - tx * 0.6) - 140,
-            H * (0.5 - ty * 0.6) - 140,
-            W * (0.5 - tx * 0.6) + 140,
-            H * (0.5 - ty * 0.6) + 140
-          );
-          glossGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
-          glossGrad.addColorStop(0.48, 'rgba(255, 255, 255, 0)');
-          glossGrad.addColorStop(0.5, `rgba(255, 255, 255, ${Math.min(0.5, tiltMag * 0.7)})`);
-          glossGrad.addColorStop(0.52, 'rgba(255, 255, 255, 0)');
-          glossGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
-
-          octx.fillStyle = glossGrad;
-          octx.fillRect(0, 0, W, H);
-          octx.restore();
-        }
-
-        // Conic Corner Peel Roll
-        if (!state.isPeeling || state.peeledPercent < 0.02) {
-          mctx.save();
-          mctx.shadowColor = 'rgba(0, 0, 0, 0.22)';
-          mctx.shadowBlur = 32;
-          mctx.shadowOffsetX = -tx * 16;
-          mctx.shadowOffsetY = 14 - ty * 16;
-          mctx.drawImage(off, 0, 0);
-          mctx.restore();
-        } else {
-          const cx = state.peelCorner.x;
-          const cy = state.peelCorner.y;
-          const px = state.peelCur.x;
-          const py = state.peelCur.y;
-
-          const mx = (cx + px) * 0.5;
-          const my = (cy + py) * 0.5;
-          const dx = px - cx;
-          const dy = py - cy;
-          const len = Math.hypot(dx, dy);
-          const nx = dx / len;
-          const ny = dy / len;
-          const txLine = -ny;
-          const tyLine = nx;
-
-          mctx.save();
-          drawReleaseBackingPaper(mctx, W, H);
-          mctx.restore();
-
-          mctx.save();
-          mctx.beginPath();
-          const big = 2000;
-          mctx.moveTo(mx - txLine * big, my - tyLine * big);
-          mctx.lineTo(mx + txLine * big, my + tyLine * big);
-          mctx.lineTo(mx + txLine * big + nx * big, my + tyLine * big + ny * big);
-          mctx.lineTo(mx - txLine * big + nx * big, my - tyLine * big + ny * big);
-          mctx.closePath();
-          mctx.clip();
-          mctx.drawImage(off, 0, 0);
-          mctx.restore();
-
-          mctx.save();
-          mctx.beginPath();
-          mctx.moveTo(mx - txLine * big, my - tyLine * big);
-          mctx.lineTo(mx + txLine * big, my + tyLine * big);
-          mctx.lineTo(mx + txLine * big - nx * big, my + tyLine * big - ny * big);
-          mctx.lineTo(mx - txLine * big - nx * big, my - tyLine * big - ny * big);
-          mctx.closePath();
-          mctx.clip();
-
-          mctx.translate(mx, my);
-          const reflectMat = [
-            1 - 2 * nx * nx,
-            -2 * nx * ny,
-            -2 * nx * ny,
-            1 - 2 * ny * ny
-          ];
-          mctx.transform(reflectMat[0], reflectMat[1], reflectMat[2], reflectMat[3], 0, 0);
-          mctx.translate(-mx, -my);
-
-          mctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
-          mctx.shadowBlur = 18;
-          mctx.shadowOffsetX = nx * 8;
-          mctx.shadowOffsetY = ny * 8;
-          mctx.drawImage(off, 0, 0);
-
-          mctx.fillStyle = 'rgba(255, 255, 255, 0.16)';
-          mctx.fillRect(0, 0, W, H);
-          mctx.restore();
-        }
-      }
-
-      function drawReleaseBackingPaper(ctx, W, H) {
-        ctx.fillStyle = '#f8fafc';
-        ctx.fillRect(60, 60, W - 120, H - 120);
-
-        ctx.save();
-        ctx.font = '11px sans-serif';
-        ctx.fillStyle = 'rgba(148, 163, 184, 0.4)';
-        ctx.rotate(-0.25);
-        for (let y = -200; y < H + 300; y += 45) {
-          for (let x = -200; x < W + 300; x += 160) {
-            ctx.fillText('Spooky Milk Frogs ★', x, y);
-          }
-        }
-        ctx.restore();
-      }
-
-      const modalCanvasWrap = document.querySelector('.inspect-canvas-wrap');
-
-      modalCanvasWrap.addEventListener('pointermove', (e) => {
-        const rect = modalCanvasWrap.getBoundingClientRect();
-        const normX = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
-        const normY = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
-
-        state.modalTargetTiltX = normX;
-        state.modalTargetTiltY = normY;
-
-        if (state.isPeeling) {
-          const cvRect = modalCanvas.getBoundingClientRect();
-          state.peelCur.x = ((e.clientX - cvRect.left) / cvRect.width) * modalCanvas.width;
-          state.peelCur.y = ((e.clientY - cvRect.top) / cvRect.height) * modalCanvas.height;
-
-          const dist = Math.hypot(state.peelCur.x - state.peelCorner.x, state.peelCur.y - state.peelCorner.y);
-          state.peeledPercent = dist / (modalCanvas.width * 0.7);
-
-          if (state.peeledPercent > 0.65 && !state.isPeeledOff) {
-            state.isPeeledOff = true;
-            state.isPeeling = false;
-            playTactileSound('peel-off');
-            triggerCelebrationBurst(e.clientX, e.clientY);
-          } else {
-            playTactileSound('peel-drag');
-          }
-        }
-      });
-
-      modalCanvas.addEventListener('pointerdown', (e) => {
-        const cvRect = modalCanvas.getBoundingClientRect();
-        const px = ((e.clientX - cvRect.left) / cvRect.width) * modalCanvas.width;
-        const py = ((e.clientY - cvRect.top) / cvRect.height) * modalCanvas.height;
-
-        const corners = [
-          { x: 70, y: 70 },
-          { x: modalCanvas.width - 70, y: 70 },
-          { x: 70, y: modalCanvas.height - 70 },
-          { x: modalCanvas.width - 70, y: modalCanvas.height - 70 }
-        ];
-        let nearest = corners[0];
-        let minDist = 9999;
-        corners.forEach(c => {
-          const d = Math.hypot(px - c.x, py - c.y);
-          if (d < minDist) { minDist = d; nearest = c; }
-        });
-
-        if (minDist < 120 && !state.isPeeledOff) {
-          state.isPeeling = true;
-          state.peelCorner = nearest;
-          state.peelStart = { x: px, y: py };
-          state.peelCur = { x: px, y: py };
-          modalCanvas.setPointerCapture(e.pointerId);
-          playTactileSound('peel-drag');
-        }
-      });
-
-      function onPeelEnd() {
-        if (!state.isPeeling) return;
-        state.isPeeling = false;
-        const startP = state.peeledPercent;
-        const startTime = performance.now();
-        function spring() {
-          const t = (performance.now() - startTime) / 220;
-          if (t < 1.0) {
-            state.peeledPercent = startP * Math.cos(t * Math.PI * 0.5);
-            requestAnimationFrame(spring);
-          } else {
-            state.peeledPercent = 0;
-          }
-        }
-        spring();
-      }
-      modalCanvas.addEventListener('pointerup', onPeelEnd);
-      modalCanvas.addEventListener('pointercancel', onPeelEnd);
-
-      // ==================== TEAR INTERACTION ====================
-      window.addEventListener('pointerdown', (e) => {
-        if (state.phase !== 'sealed') return;
-
-        const H = window.innerHeight;
-        const perfScreenY = H * 0.38;
-
-        if (Math.abs(e.clientY - perfScreenY) < 120) {
-          state.isDraggingTear = true;
-          state.dragStartX = e.clientX;
-          state.dragStartY = e.clientY;
-          state.dragCurX = e.clientX;
-          state.dragCurY = e.clientY;
-          state.phase = 'tearing';
-          playTactileSound('tear-drag');
-        }
-      });
-
-      window.addEventListener('pointermove', (e) => {
-        if (pouchUniforms) {
-          pouchUniforms.uMouse.value.set(
-            (e.clientX / window.innerWidth - 0.5) * 2,
-            -(e.clientY / window.innerHeight - 0.5) * 2
-          );
-        }
-
-        if (!state.isDraggingTear) return;
-
-        state.dragCurX = e.clientX;
-        state.dragCurY = e.clientY;
-
-        const W = window.innerWidth;
-        const tearDist = (state.dragCurX - state.dragStartX);
-        const maxDrag = Math.min(W * 0.42, 320);
-
-        state.tearProgress = Math.max(0.0, Math.min(1.0, tearDist / maxDrag));
-
-        if (cardFlapUniforms) {
-          cardFlapUniforms.uFront.value = state.tearProgress;
-        }
-        playTactileSound('tear-drag');
-
-        if (state.tearProgress >= 0.72) {
-          completePackTear();
-        }
-      });
-
-      window.addEventListener('pointerup', () => {
-        if (!state.isDraggingTear) return;
-        state.isDraggingTear = false;
-
-        if (state.tearProgress < 0.72) {
-          const startT = state.tearProgress;
-          const startTime = performance.now();
-          function springTear() {
-            const t = (performance.now() - startTime) / 180;
-            if (t < 1.0) {
-              state.tearProgress = startT * (1.0 - t);
-              if (cardFlapUniforms) cardFlapUniforms.uFront.value = state.tearProgress;
-              requestAnimationFrame(springTear);
-            } else {
-              state.tearProgress = 0.0;
-              state.phase = 'sealed';
-              if (cardFlapUniforms) cardFlapUniforms.uFront.value = 0.0;
-            }
-          }
-          springTear();
-        }
-      });
-
-      function completePackTear() {
-        state.isDraggingTear = false;
-        state.phase = 'opened';
-        state.tearProgress = 1.0;
-        if (cardFlapUniforms) {
-          cardFlapUniforms.uFront.value = 1.0;
-          cardFlapUniforms.uFly.value = 0.01;
-        }
-
-        const startTime = performance.now();
-        function flyHeader() {
-          const t = (performance.now() - startTime) / 600;
-          if (t < 1.0 && cardFlapUniforms) {
-            cardFlapUniforms.uFly.value = t * 2.5;
-            requestAnimationFrame(flyHeader);
-          }
-        }
-        flyHeader();
-
-        triggerCelebrationBurst(window.innerWidth / 2, window.innerHeight * 0.38);
-        spawnScatteredStickers();
-
-        if (pouchUniforms) {
-          pouchUniforms.uTorn.value = 1.0;
-        }
-      }
-
-      // ==================== PACK RESEALING (KEY R) ====================
-      const btnResealPack = document.getElementById('btn-reseal-pack');
-
-      function resealPack() {
-        if (state.phase === 'sealed') return;
-        state.phase = 'sealed';
-        state.tearProgress = 0.0;
-
-        playTactileSound('reseal');
-
-        const cx = window.innerWidth / 2;
-        const cy = window.innerHeight / 2;
-
-        state.scatteredStickers.forEach((st) => {
-          st.el.style.transition = 'all 0.45s cubic-bezier(0.16, 1, 0.3, 1)';
-          st.el.style.left = (cx - st.def.w / 2) + 'px';
-          st.el.style.top = (cy - st.def.h / 2) + 'px';
-          st.el.style.transform = 'scale(0.01) rotate(0deg)';
-          st.el.style.opacity = '0';
-        });
-
-        setTimeout(() => {
-          scatterLayer.innerHTML = '';
-          state.scatteredStickers = [];
-        }, 460);
-
-        if (cardFlapUniforms) {
-          cardFlapUniforms.uFront.value = 0.0;
-          cardFlapUniforms.uFly.value = 0.0;
-        }
-        if (pouchUniforms) {
-          pouchUniforms.uTorn.value = 0.0;
-        }
-
-        const hintEl = document.getElementById('bottom-hint-text');
-        if (hintEl) hintEl.textContent = '沿虚线拖动即可撕开包装';
-        btnResealPack.style.display = 'none';
-      }
-
-      btnResealPack.addEventListener('click', resealPack);
-
-      window.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && state.modalOpen) {
-          closeInspectModal();
-        } else if ((e.key === 'r' || e.key === 'R') && state.phase === 'opened') {
-          resealPack();
-        } else if ((e.key === ' ' || e.key === 'Enter') && state.phase === 'sealed') {
-          e.preventDefault();
-          completePackTear();
-        }
-      });
-
-      // ==================== DUAL PACK SWITCHER ====================
-      const packBtnNaiwa = document.getElementById('pack-btn-naiwa');
-      const packBtnClassic = document.getElementById('pack-btn-classic');
-      const brandHeaderTitle = document.getElementById('brand-header-title');
-      const brandHeaderSub = document.getElementById('brand-header-sub');
-
-      packBtnNaiwa.addEventListener('click', () => {
-        if (state.packType === 'naiwa') return;
-        state.packType = 'naiwa';
-        packBtnNaiwa.classList.add('active');
-        packBtnClassic.classList.remove('active');
-        brandHeaderTitle.textContent = 'Spooky Sticker Pack';
-        brandHeaderSub.textContent = '万圣节奶蛙闪粉贴纸包 · 3D 全息触感';
-        loadPackTextures('naiwa');
-        resealPack();
-      });
-
-      packBtnClassic.addEventListener('click', () => {
-        if (state.packType === 'classic') return;
-        state.packType = 'classic';
-        packBtnClassic.classList.add('active');
-        packBtnNaiwa.classList.remove('active');
-        brandHeaderTitle.textContent = 'Spooky Sticker Pack';
-        brandHeaderSub.textContent = '经典万圣节贴纸包 · 3D 全息触感';
-        loadPackTextures('classic');
-        resealPack();
-      });
-
-      // ==================== MAIN ANIMATION LOOP ====================
-      function animate(time) {
-        requestAnimationFrame(animate);
-
-        const sec = time * 0.001;
-
-        if (pouchUniforms) {
-          pouchUniforms.uTime.value = sec;
-        }
-
-        if (pouchMesh && cardTopMesh && cardFlapMesh && state.phase === 'sealed') {
-          const bob = Math.sin(sec * 1.5) * 0.02;
-          pouchMesh.position.y = -0.32 + bob;
-          cardTopMesh.position.y = 0.95 + bob;
-          cardFlapMesh.position.y = 0.68 + bob;
-        }
-
-        if (renderer && scene && camera) {
-          renderer.render(scene, camera);
-        }
-
-        if (state.modalOpen) {
-          state.modalTiltX += (state.modalTargetTiltX - state.modalTiltX) * 0.12;
-          state.modalTiltY += (state.modalTargetTiltY - state.modalTiltY) * 0.12;
-
-          const rotX = -state.modalTiltY * 20;
-          const rotY = state.modalTiltX * 20;
-          modalTiltBox.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
-
-          renderModalCanvas();
-        }
-      }
-
-      window.addEventListener('DOMContentLoaded', () => {
-        initWebGLScene();
-        requestAnimationFrame(animate);
-      });
-
-    })();
+  <script id="__NEXT_DATA__" type="application/json">
+    {"props":{"pageProps":{}},"page":"/spooky-sticker-pack","query":{},"buildId":"s2RG2WSORiRyY2RGpQuna","nextExport":true,"autoExport":true,"isFallback":false,"scriptLoader":[]}
   </script>
+
+  <script src="./_next/static/chunks/polyfills-42372ed130431b0a.js"></script>
+  <script src="./_next/static/chunks/webpack-18e8f85ee4f94b70.js"></script>
+  <script src="./_next/static/chunks/framework-73c7e241520ce480.js"></script>
+  <script src="./_next/static/chunks/main-2328938e3c37cbd9.js"></script>
+  <script src="./_next/static/chunks/pages/_app-a581afa83749ba35.js"></script>
+  <script src="./_next/static/chunks/8fe9ca81-94dcf97803861d1d.js"></script>
+  <script src="./_next/static/chunks/dafad590-20f07dd243edcdc2.js"></script>
+  <script src="./_next/static/chunks/865-b434db64f7cb4fc7.js"></script>
+  <script src="./_next/static/chunks/pages/spooky-sticker-pack-91bf6572ea4dca74.js"></script>
 </body>
 </html>
